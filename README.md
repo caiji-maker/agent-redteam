@@ -3,10 +3,10 @@ AIGC:
   ContentProducer: '001191110102MAD55U9H0F10002'
   ContentPropagator: '001191110102MAD55U9H0F10002'
   Label: '1'
-  ProduceID: 'a869206c-053e-46e9-8413-4157d960aedd'
-  PropagateID: 'a869206c-053e-46e9-8413-4157d960aedd'
-  ReservedCode1: '605f5a2b-aeab-4139-a698-59ab6fb9e8e5'
-  ReservedCode2: '605f5a2b-aeab-4139-a698-59ab6fb9e8e5'
+  ProduceID: '2ca829ec-5eda-424a-8eab-13a698094649'
+  PropagateID: '2ca829ec-5eda-424a-8eab-13a698094649'
+  ReservedCode1: '766590ba-1bde-4b5c-a45e-717519313200'
+  ReservedCode2: '766590ba-1bde-4b5c-a45e-717519313200'
 ---
 
 # AgentRedTeam
