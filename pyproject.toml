@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-redteam"
+version = "0.5.0"
+description = "AgentRedTeam - 基于Agent普及的网络安全攻防平台 (MVP)"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "openai>=1.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.scripts]
+agent-redteam = "agent_redteam.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

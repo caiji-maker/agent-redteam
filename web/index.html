@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentRedTeam - AI Agent 安全攻防测试平台</title>
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--surface2:#242734;--border:#2e3144;--text:#e4e6f0;--text2:#8b8fa3;--accent:#6c5ce7;--accent2:#a29bfe;--green:#00b894;--yellow:#fdcb6e;--red:#e74c3c;--orange:#e17055;--blue:#0984e3}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+.header{background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border-bottom:1px solid var(--border);padding:16px 40px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
+.header .subtitle{color:var(--text2);font-size:12px;margin-top:2px}
+.badge{background:var(--accent);color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.main{display:grid;grid-template-columns:360px 1fr;gap:0;min-height:calc(100vh - 64px)}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px;overflow-y:auto;max-height:calc(100vh - 64px)}
+.section{margin-bottom:20px}
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+label{display:block;font-size:13px;font-weight:500;margin-bottom:5px}
+input,select,textarea{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;transition:border .2s;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select{cursor:pointer}
+textarea{resize:vertical;min-height:60px;font-family:'Consolas',monospace;font-size:12px}
+.field{margin-bottom:12px}
+.hint{font-size:11px;color:var(--text2);margin-top:3px}
+.prot-cards{display:flex;flex-direction:column;gap:6px}
+.prot-card{padding:10px 12px;background:var(--bg);border:2px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s}
+.prot-card:hover{border-color:var(--accent2)}
+.prot-card.active{border-color:var(--accent);background:rgba(108,92,231,.1)}
+.prot-card .name{font-weight:600;font-size:13px}
+.prot-card .desc{font-size:11px;color:var(--text2)}
+.attack-toggles{display:flex;flex-direction:column;gap:6px}
+.attack-toggle{padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;align-items:flex-start;gap:8px;transition:all .2s}
+.attack-toggle:hover{border-color:var(--accent2)}
+.attack-toggle.active{border-color:var(--accent);background:rgba(108,92,231,.08)}
+.attack-toggle .check{width:16px;height:16px;border:2px solid var(--border);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .2s}
+.attack-toggle.active .check{background:var(--accent);border-color:var(--accent)}
+.attack-toggle.active .check::after{content:'\2713';color:#fff;font-size:11px}
+.attack-toggle .info .name{font-size:12px;font-weight:600}
+.attack-toggle .info .desc{font-size:10px;color:var(--text2);margin-top:1px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.switch-row .label{font-size:13px;font-weight:500}
+.switch{width:40px;height:22px;background:var(--border);border-radius:11px;cursor:pointer;position:relative;transition:background .2s}
+.switch.on{background:var(--accent)}
+.switch::after{content:'';width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:transform .2s}
+.switch.on::after{transform:translateX(18px)}
+.btn-run{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
+.btn-run:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(108,92,231,.4)}
+.btn-run:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.content{padding:24px 32px;overflow-y:auto;max-height:calc(100vh - 64px)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;color:var(--text2)}
+.empty-state .icon{font-size:64px;margin-bottom:16px;opacity:.4}
+.empty-state h2{font-size:20px;color:var(--text);margin-bottom:8px}
+.empty-state p{font-size:14px;max-width:400px}
+.result-area{display:none}
+.result-area.visible{display:block}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.stat-card .value{font-size:28px;font-weight:800;margin-bottom:2px}
+.stat-card .label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.stat-card.risk-high .value{color:var(--red)}
+.stat-card.risk-medium .value{color:var(--orange)}
+.stat-card.risk-low .value{color:var(--green)}
+.stat-card.info .value{color:var(--blue)}
+.compare-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.compare-section h3{font-size:15px;margin-bottom:14px}
+.compare-grid{display:grid;grid-template-columns:1fr 60px 1fr;gap:12px;align-items:center}
+.compare-col{text-align:center}
+.compare-col .tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;margin-bottom:8px}
+.compare-col .tag.bare{background:rgba(231,76,60,.15);color:var(--red)}
+.compare-col .tag.protected{background:rgba(0,184,148,.15);color:var(--green)}
+.compare-col .big-num{font-size:36px;font-weight:800}
+.compare-col .sub{font-size:11px;color:var(--text2);margin-top:3px}
+.compare-arrow{text-align:center;font-size:20px;color:var(--text2)}
+.improvement-badge{display:inline-block;padding:3px 12px;border-radius:6px;font-size:12px;font-weight:700;margin-top:10px}
+.improvement-badge.good{background:rgba(0,184,148,.15);color:var(--green)}
+.improvement-badge.bad{background:rgba(231,76,60,.15);color:var(--red)}
+.details-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.details-section h3{font-size:15px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;background:var(--bg);color:var(--text2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.tag-sm{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.tag-sm.injection{background:rgba(253,203,110,.15);color:var(--yellow)}
+.tag-sm.tool-abuse{background:rgba(225,112,85,.15);color:var(--orange)}
+.tag-sm.direct{background:rgba(9,132,227,.15);color:var(--blue)}
+.tag-sm.jailbreak{background:rgba(108,92,231,.15);color:var(--accent2)}
+.tag-sm.multi-turn{background:rgba(0,184,148,.15);color:var(--green)}
+.tag-sm.prompt-leak{background:rgba(214,48,49,.15);color:#d63031}
+.tag-sm.tool-output-inject{background:rgba(162,155,254,.15);color:#a29bfe}
+.report-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.report-section h3{font-size:15px;margin-bottom:14px}
+.report-md{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'Consolas',monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:400px;overflow-y:auto}
+.history-list{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.history-item{padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text2);cursor:pointer;transition:border-color .2s}
+.history-item:hover{border-color:var(--accent2);color:var(--text)}
+.error-box{background:rgba(231,76,60,.1);border:1px solid var(--red);border-radius:8px;padding:14px;margin-bottom:16px;color:var(--red);font-size:13px}
+.custom-form{display:none;margin-top:10px}
+.custom-form.visible{display:block}
+.custom-form .field{margin-bottom:8px}
+.custom-form label{font-size:12px;margin-bottom:3px}
+.check-field{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px}
+.check-field input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent)}
+/* Progress */
+.progress-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px}
+.progress-bar-bg{background:var(--bg);border-radius:8px;height:24px;overflow:hidden;margin-bottom:12px;position:relative}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:8px;transition:width .3s ease}
+.progress-bar-text{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.live-log{max-height:200px;overflow-y:auto;font-size:11px;font-family:'Consolas',monospace;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px}
+.live-log .hit{color:var(--red)}
+.live-log .miss{color:var(--text2)}
+.live-log .info{color:var(--blue)}
+.opt-row{display:flex;gap:8px;align-items:center}
+.opt-row select,.opt-row input{flex:1}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@media(max-width:900px){.main{grid-template-columns:1fr}.sidebar{max-height:none}.stats-row{grid-template-columns:repeat(2,1fr)}.compare-grid{grid-template-columns:1fr}}
+.tab-btn{padding:6px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:var(--surface2);color:var(--text2)}
+.tab-btn.active{background:var(--accent);color:#fff}
+.trend-chart{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.trend-bar{display:flex;align-items:flex-end;gap:3px;height:160px;padding:0 4px;position:relative}
+.trend-col{display:flex;flex-direction:column;align-items:center;flex:1;min-width:20px;cursor:pointer;position:relative;height:100%}
+.trend-col .bar{width:100%;max-width:36px;border-radius:4px 4px 0 0;transition:height 0.3s;position:absolute;bottom:0;left:50%;transform:translateX(-50%)}
+.trend-col .label{font-size:9px;color:var(--text2);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px}
+.trend-col .val{font-size:9px;font-weight:700;margin-bottom:2px}
+.trend-col.regression .bar{outline:2px solid var(--red);outline-offset:1px}
+.trend-col:hover .tooltip{display:block}
+.trend-col .tooltip{display:none;position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:6px 10px;border-radius:6px;font-size:10px;white-space:nowrap;z-index:10;margin-bottom:4px;pointer-events:none}
+.trend-legend{display:flex;gap:16px;font-size:11px;color:var(--text2);margin-bottom:8px}
+.trend-legend span{display:flex;align-items:center;gap:4px}
+.trend-legend .dot{width:10px;height:10px;border-radius:2px}
+.prot-card-sm{padding:3px 8px;font-size:10px;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text2);transition:all .15s}
+.prot-card-sm.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.prot-card-sm:hover{border-color:var(--accent)}
+.tool-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;position:relative}
+.tool-card .tool-header{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.tool-card .tool-name-input{flex:1;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;outline:none}
+.tool-card .tool-name-input:focus{border-color:var(--accent)}
+.tool-card .tool-delete{width:22px;height:22px;border:none;background:rgba(231,76,60,.15);color:var(--red);border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.tool-card .tool-delete:hover{background:rgba(231,76,60,.3)}
+.tool-card .tool-field{margin-bottom:6px}
+.tool-card .tool-field label{font-size:10px;color:var(--text2);margin-bottom:2px}
+.tool-card .tool-field input,.tool-card .tool-field select,.tool-card .tool-field textarea{padding:4px 8px;font-size:12px}
+.tool-card .param-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
+.tool-card .param-row input{flex:1;min-width:0}
+.tool-card .param-row select{width:80px;flex-shrink:0}
+.tool-card .param-row .param-del{width:20px;height:20px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:11px;flex-shrink:0}
+.tool-card .param-row .param-del:hover{color:var(--red)}
+.sensitive-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;cursor:pointer;margin-left:4px}
+.sensitive-tag.data-read{background:rgba(253,203,110,.15);color:var(--yellow)}
+.sensitive-tag.data-exfil{background:rgba(231,76,60,.15);color:var(--red)}
+.sensitive-tag.code-exec{background:rgba(225,112,85,.15);color:var(--orange)}
+.sensitive-tag.none{background:rgba(139,143,163,.15);color:var(--text2)}
+/* Replay Modal */
+.replay-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center}
+.replay-modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:90%;max-width:800px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column}
+.replay-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.replay-header h3{font-size:15px;margin:0}
+.replay-close{width:28px;height:28px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:18px;border-radius:6px}
+.replay-close:hover{background:var(--surface2);color:var(--text)}
+.replay-body{padding:20px;overflow-y:auto;flex:1}
+.replay-step{margin-bottom:16px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;opacity:0;transform:translateY(10px);transition:all .4s ease}
+.replay-step.visible{opacity:1;transform:translateY(0)}
+.replay-step .step-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.replay-step .step-label.system{color:var(--accent2)}
+.replay-step .step-label.user{color:var(--blue)}
+.replay-step .step-label.assistant{color:var(--green)}
+.replay-step .step-label.tool{color:var(--orange)}
+.replay-step .step-label.blocked{color:var(--red)}
+.replay-step .step-content{font-size:12px;font-family:'Consolas',monospace;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.replay-step .step-meta{font-size:10px;color:var(--text2);margin-top:4px}
+.replay-controls{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.replay-controls button{padding:6px 14px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
+.replay-btn-play{background:var(--accent);color:#fff}
+.replay-btn-play:hover{background:var(--accent2)}
+.replay-btn-step{background:var(--surface2);color:var(--text);border:1px solid var(--border)!important}
+.replay-btn-step:hover{border-color:var(--accent)!important}
+.replay-progress{flex:1;font-size:11px;color:var(--text2)}
+/* Batch Compare */
+.batch-model-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.batch-model-row input{flex:1;min-width:0}
+.batch-model-row .model-label{width:70px;flex-shrink:0;font-size:11px;color:var(--text2)}
+.batch-model-row .btn-remove{width:22px;height:22px;border:none;background:rgba(231,76,60,.15);color:var(--red);border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.batch-compare-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px}
+.batch-compare-table th{background:var(--bg);padding:10px;text-align:center;font-size:11px;font-weight:700}
+.batch-compare-table td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)}
+.batch-compare-table .model-name{font-weight:700;text-align:left}
+.batch-winner{color:var(--green);font-weight:700}
+.batch-loser{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1><span>&#128737;</span> AgentRedTeam     <span class="badge">v0.5.0</span></h1>
+    <div class="subtitle">AI Agent 安全攻防测试平台</div>
+  </div>
+</div>
+<div class="main">
+
+<!-- Sidebar -->
+<div class="sidebar">
+
+  <!-- Model -->
+  <div class="section">
+    <div class="section-title">&#9881; 模型配置</div>
+    <div class="field">
+      <label>选择模型</label>
+      <select id="modelSelect"><option value="">加载中...</option></select>
+    </div>
+    <div class="opt-row field">
+      <div style="flex:1">
+        <label>Base URL</label>
+        <input type="text" id="baseUrl" placeholder="https://api.deepseek.com/v1" />
+      </div>
+      <div style="flex:1">
+        <label>自定义模型名</label>
+        <input type="text" id="customModel" placeholder="留空则用预设" />
+      </div>
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input type="password" id="apiKey" placeholder="sk-..." />
+    </div>
+  </div>
+
+  <!-- Agent Config -->
+  <div class="section">
+    <div class="section-title">&#129302; 自定义 Agent 配置</div>
+    <div class="field">
+      <label>System Prompt（留空则按防护等级自动填充）</label>
+      <textarea id="agentSystemPrompt" placeholder="可选：填入你自己的 Agent 的 system prompt，测试它安不安全"></textarea>
+    </div>
+    <div class="hint">填写后，测试会用你的 system prompt 代替预设的防护等级 prompt</div>
+  </div>
+
+  <!-- Custom Tools -->
+  <div class="section">
+    <div class="section-title" style="cursor:pointer" onclick="toggleCustomTools()">
+      &#128295; 自定义工具定义 <span id="customToolsToggleIcon" style="float:right;transition:transform .2s">&#9660;</span>
+    </div>
+    <div class="hint" style="margin-bottom:8px">定义你的 Agent 拥有哪些工具，平台会据此测试安全性。留空则用内置 6 个默认工具。</div>
+    <div id="customToolsPanel" style="display:none">
+      <div id="customToolsList"></div>
+      <button onclick="addCustomTool()" style="width:100%;padding:6px 0;background:var(--surface2);color:var(--text);border:1px dashed var(--border);border-radius:6px;font-size:12px;cursor:pointer;margin-top:6px">+ 添加工具</button>
+    </div>
+  </div>
+
+  <!-- Protection Level -->
+  <div class="section">
+    <div class="section-title">&#128737; 防护等级</div>
+    <div class="prot-cards" id="protCards">
+      <div class="prot-card active" data-level="low"><div class="name">低级防护</div><div class="desc">仅基本 system prompt</div></div>
+      <div class="prot-card" data-level="medium"><div class="name">中级防护</div><div class="desc">prompt + 输入检测</div></div>
+      <div class="prot-card" data-level="high"><div class="name">高级防护</div><div class="desc">prompt + 检测 + 权限 + 白名单</div></div>
+      <div class="prot-card" data-level="custom"><div class="name">自定义</div><div class="desc">自定义防护规则</div></div>
+    </div>
+    <div class="custom-form" id="customForm">
+      <div class="check-field"><input type="checkbox" id="chkInput" checked /> 输入检测</div>
+      <div class="check-field"><input type="checkbox" id="chkTool" /> 工具调用检查</div>
+      <div class="check-field"><input type="checkbox" id="chkUrl" /> URL 白名单</div>
+      <div class="check-field"><input type="checkbox" id="chkFile" /> 文件路径检查</div>
+      <div class="check-field"><input type="checkbox" id="chkEmail" /> 邮件发送限制</div>
+    </div>
+  </div>
+
+  <!-- Attack Types -->
+  <div class="section">
+    <div class="section-title">&#128165; 攻击类型</div>
+    <div class="attack-toggles" id="attackToggles"></div>
+  </div>
+
+  <!-- Payload Sets -->
+  <div class="section">
+    <div class="section-title">&#128230; 载荷集</div>
+    <div class="field">
+      <label>已加载载荷</label>
+      <div id="payloadInfo" style="font-size:12px;color:var(--text2)">加载中...</div>
+    </div>
+    <button id="reloadPayloadsBtn" style="width:100%;padding:6px 0;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">&#128260; 重新加载 YAML 载荷</button>
+    <div class="hint" style="margin-top:4px">在 <code>payloads/custom/</code> 目录下添加 YAML 文件可自定义载荷，然后点击重载</div>
+  </div>
+
+  <!-- Compare + Concurrency -->
+  <div class="section">
+    <div class="switch-row">
+      <span class="label">对比模式</span>
+      <div class="switch on" id="compareSwitch"></div>
+    </div>
+    <div id="compareConfig" style="margin-top:8px">
+      <div class="field">
+        <label>对比基线防护等级</label>
+        <div class="prot-cards" id="compareProtCards" style="display:flex;flex-wrap:wrap;gap:4px">
+          <div class="prot-card-sm active" data-level="none">无防护</div>
+          <div class="prot-card-sm" data-level="low">低级</div>
+          <div class="prot-card-sm" data-level="medium">中级</div>
+          <div class="prot-card-sm" data-level="high">高级</div>
+          <div class="prot-card-sm" data-level="custom">自定义</div>
+        </div>
+      </div>
+      <div id="compareCustomForm" style="display:none;margin-top:4px">
+        <div class="field">
+          <label>基线 System Prompt（留空则仅"你是一个助手"）</label>
+          <textarea id="compareSystemPrompt" placeholder="可选：对比基线的 system prompt" style="height:50px;font-size:11px"></textarea>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px">
+          <div class="check-field"><input type="checkbox" id="cmpChkInput" /> 输入检测</div>
+          <div class="check-field"><input type="checkbox" id="cmpChkTool" /> 工具检查</div>
+          <div class="check-field"><input type="checkbox" id="cmpChkUrl" /> URL白名单</div>
+          <div class="check-field"><input type="checkbox" id="cmpChkFile" /> 文件路径检查</div>
+          <div class="check-field"><input type="checkbox" id="cmpChkEmail" /> 邮件限制</div>
+        </div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:8px">
+      <label>并发数: <span id="concLabel">5</span></label>
+      <input type="range" id="concurrency" min="1" max="10" value="5" style="padding:0" />
+    </div>
+  </div>
+
+  <!-- Judge LLM -->
+  <div class="section">
+    <div class="switch-row">
+      <span class="label">Judge LLM 评审</span>
+      <div class="switch" id="judgeSwitch"></div>
+    </div>
+    <div id="judgeConfig" style="display:none;margin-top:8px">
+      <div class="hint" style="margin-bottom:6px">用另一个 LLM 对攻击结果做语义评分，减少误判</div>
+      <div class="field">
+        <label>Judge API Key（留空则用上方 Key）</label>
+        <input type="password" id="judgeApiKey" placeholder="sk-..." />
+      </div>
+      <div class="opt-row field">
+        <div style="flex:1">
+          <label>Judge Base URL</label>
+          <input type="text" id="judgeBaseUrl" placeholder="留空则用上方 URL" />
+        </div>
+        <div style="flex:1">
+          <label>Judge 模型名</label>
+          <input type="text" id="judgeModel" placeholder="留空则用上方模型" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Model Batch Compare -->
+  <div class="section">
+    <div class="switch-row">
+      <span class="label">&#128200; 多模型对比</span>
+      <div class="switch" id="batchCompareSwitch"></div>
+    </div>
+    <div id="batchCompareConfig" style="display:none;margin-top:8px">
+      <div class="hint" style="margin-bottom:6px">同时测试多个模型，横向对比安全性。每个模型独立运行相同载荷集。</div>
+      <div id="batchModelList"></div>
+      <button onclick="addBatchModel()" style="width:100%;padding:5px 0;background:var(--surface2);color:var(--text);border:1px dashed var(--border);border-radius:6px;font-size:11px;cursor:pointer;margin-top:4px">+ 添加模型</button>
+      <div class="hint" style="margin-top:6px">勾选后，点击「开始测试」将自动运行多模型对比（忽略单模型测试）</div>
+    </div>
+  </div>
+
+  <!-- Run -->
+  <div class="section">
+    <button class="btn-run" id="btnRun" onclick="runTest()">
+      <span id="btnText">&#9654; 开始测试</span>
+    </button>
+  </div>
+
+  <!-- Config Templates -->
+  <div class="section">
+    <div class="section-title">&#128190; 测试配置模板</div>
+    <div class="field">
+      <select id="configTemplateSelect" style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+        <option value="">-- 选择已保存配置 --</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button id="btnLoadConfig" onclick="loadConfigTemplate()" style="flex:1;padding:5px 0;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer">&#9200; 加载</button>
+      <button id="btnSaveConfig" onclick="saveConfigTemplate()" style="flex:1;padding:5px 0;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer">&#128190; 保存当前</button>
+      <button id="btnDelConfig" onclick="deleteConfigTemplate()" style="flex:1;padding:5px 0;background:var(--surface2);color:var(--red);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer">&#128465; 删除</button>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="section">
+    <div class="section-title">&#128202; 历史</div>
+    <div class="history-list" id="historyList">
+      <div style="color:var(--text2);font-size:11px;">暂无</div>
+    </div>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <div style="display:flex;gap:12px;margin-bottom:12px">
+    <button id="tabResult" class="tab-btn active" onclick="switchTab('result')">&#128202; 测试结果</button>
+    <button id="tabTrend" class="tab-btn" onclick="switchTab('trend')">&#128200; 趋势分析</button>
+  </div>
+  <div class="empty-state" id="emptyState">
+    <div class="icon">&#128737;</div>
+    <h2>开始安全测试</h2>
+    <p>配置模型、防护等级和攻击类型，点击「开始测试」</p>
+  </div>
+  <div class="result-area" id="resultArea"></div>
+  <div id="trendArea" style="display:none"></div>
+</div>
+
+</div>
+
+<!-- Replay Modal -->
+<div class="replay-overlay" id="replayOverlay" style="display:none">
+  <div class="replay-modal">
+    <div class="replay-header">
+      <h3 id="replayTitle">&#128254; 攻击链回放</h3>
+      <button class="replay-close" onclick="closeReplay()">&times;</button>
+    </div>
+    <div class="replay-body" id="replayBody"></div>
+    <div class="replay-controls">
+      <button class="replay-btn-play" id="replayPlayBtn" onclick="replayAutoPlay()">&#9654; 自动播放</button>
+      <button class="replay-btn-step" onclick="replayNextStep()">&#9655; 下一步</button>
+      <button class="replay-btn-step" onclick="replayShowAll()">&#9655;&#9655; 全部展开</button>
+      <div class="replay-progress" id="replayProgress">0 / 0 步</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = {
+  protectionLevel: 'low',
+  compareMode: true,
+  compareProtectionLevel: 'none',
+  judgeEnabled: false,
+  batchCompareEnabled: false,
+  selectedAttacks: new Set(['indirect_injection', 'tool_abuse']),
+  running: false,
+  ws: null,
+  liveHits: [],
+};
+let batchModelsData = [];  // [{label, api_key, base_url, model}]
+
+(async function init() {
+  await loadModels();
+  await loadAttackTypes();
+  await loadPayloadInfo();
+  await loadHistory();
+  document.getElementById('concurrency').addEventListener('input', function() {
+    document.getElementById('concLabel').textContent = this.value;
+  });
+})();
+
+// ── Models ──
+async function loadModels() {
+  try {
+    const res = await fetch('/api/models');
+    const data = await res.json();
+    const sel = document.getElementById('modelSelect');
+    sel.innerHTML = '';
+    let lastGroup = '';
+    data.models.forEach(m => {
+      if (m.group !== lastGroup) {
+        const g = document.createElement('optgroup');
+        g.label = m.group;
+        sel.appendChild(g);
+        lastGroup = m.group;
+      }
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.name;
+      opt.dataset.baseUrl = m.base_url;
+      sel.lastElementChild.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      const opt = sel.options[sel.selectedIndex];
+      if (opt && opt.dataset.baseUrl) document.getElementById('baseUrl').value = opt.dataset.baseUrl;
+    });
+    sel.dispatchEvent(new Event('change'));
+  } catch(e) { console.error(e); }
+}
+
+// ── Attack Types ──
+async function loadAttackTypes() {
+  try {
+    const res = await fetch('/api/attack-types');
+    const data = await res.json();
+    const container = document.getElementById('attackToggles');
+    container.innerHTML = '';
+    data.attack_types.forEach(at => {
+      const div = document.createElement('div');
+      div.className = 'attack-toggle' + (state.selectedAttacks.has(at.id) ? ' active' : '');
+      div.dataset.id = at.id;
+      div.innerHTML = `<div class="check"></div><div class="info"><div class="name">${at.name}</div><div class="desc">${at.description}</div></div>`;
+      div.addEventListener('click', () => {
+        if (state.selectedAttacks.has(at.id)) { state.selectedAttacks.delete(at.id); div.classList.remove('active'); }
+        else { state.selectedAttacks.add(at.id); div.classList.add('active'); }
+      });
+      container.appendChild(div);
+    });
+  } catch(e) { console.error(e); }
+}
+
+// ── Payload Sets ──
+async function loadPayloadInfo() {
+  try {
+    const res = await fetch('/api/payloads');
+    const data = await res.json();
+    const container = document.getElementById('payloadInfo');
+    const payloads = data.payloads || {};
+    if (Object.keys(payloads).length === 0) {
+      container.innerHTML = '无载荷文件';
+      return;
+    }
+    let html = '';
+    for (const [type, info] of Object.entries(payloads)) {
+      const source = info.source === 'yaml' ? 'YAML' : '内置';
+      const count = typeof info.count === 'number' ? info.count + ' 条' : info.count || '?';
+      html += `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${info.name || type}</span><span style="color:var(--text2)">${count} (${source})</span></div>`;
+    }
+    container.innerHTML = html;
+  } catch(e) {
+    document.getElementById('payloadInfo').innerHTML = '加载失败';
+    console.error(e);
+  }
+}
+
+document.getElementById('reloadPayloadsBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('reloadPayloadsBtn');
+  btn.disabled = true;
+  btn.textContent = '重载中...';
+  try {
+    const res = await fetch('/api/payloads/reload', { method: 'POST' });
+    const data = await res.json();
+    await loadPayloadInfo();
+    btn.textContent = '✓ 已重载 ' + (data.loaded_types || []).length + ' 类';
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = '&#128260; 重新加载 YAML 载荷'; }, 2000);
+  } catch(e) {
+    btn.textContent = '重载失败';
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = '&#128260; 重新加载 YAML 载荷'; }, 2000);
+  }
+});
+
+// ── Config Templates (localStorage) ──
+const CONFIG_STORAGE_KEY = 'agentRedTeam_configTemplates';
+
+function getConfigTemplates() {
+  try { return JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function refreshConfigTemplateList() {
+  const sel = document.getElementById('configTemplateSelect');
+  const templates = getConfigTemplates();
+  sel.innerHTML = '<option value="">-- 选择已保存配置 --</option>';
+  for (const name of Object.keys(templates)) {
+    sel.innerHTML += `<option value="${name}">${name}</option>`;
+  }
+}
+
+function _gatherCurrentConfig() {
+  const attacks = Array.from(state.selectedAttacks || []);
+  return {
+    model: document.getElementById('modelSelect').value,
+    customModel: document.getElementById('customModel').value,
+    baseUrl: document.getElementById('baseUrl').value,
+    apiKey: '', // 不存 API Key 到 localStorage
+    protectionLevel: state.protectionLevel,
+    attackTypes: attacks,
+    compareMode: state.compareMode,
+    compareProtectionLevel: state.compareProtectionLevel,
+    compareSystemPrompt: document.getElementById('compareSystemPrompt').value,
+    cmpChkInput: document.getElementById('cmpChkInput').checked,
+    cmpChkTool: document.getElementById('cmpChkTool').checked,
+    cmpChkUrl: document.getElementById('cmpChkUrl').checked,
+    cmpChkFile: document.getElementById('cmpChkFile').checked,
+    cmpChkEmail: document.getElementById('cmpChkEmail').checked,
+    judgeEnabled: state.judgeEnabled,
+    concurrency: document.getElementById('concurrency').value,
+    customSystemPrompt: document.getElementById('agentSystemPrompt').value,
+  };
+}
+
+function saveConfigTemplate() {
+  const name = prompt('请输入配置名称：', '配置 ' + new Date().toLocaleDateString());
+  if (!name) return;
+  const templates = getConfigTemplates();
+  templates[name] = _gatherCurrentConfig();
+  localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(templates));
+  refreshConfigTemplateList();
+  document.getElementById('configTemplateSelect').value = name;
+}
+
+function loadConfigTemplate() {
+  const sel = document.getElementById('configTemplateSelect');
+  const name = sel.value;
+  if (!name) { alert('请先选择一个配置'); return; }
+  const templates = getConfigTemplates();
+  const cfg = templates[name];
+  if (!cfg) { alert('配置不存在'); return; }
+
+  // 恢复配置
+  if (cfg.model) document.getElementById('modelSelect').value = cfg.model;
+  if (cfg.customModel) document.getElementById('customModel').value = cfg.customModel;
+  if (cfg.baseUrl) document.getElementById('baseUrl').value = cfg.baseUrl;
+  if (cfg.customSystemPrompt) document.getElementById('agentSystemPrompt').value = cfg.customSystemPrompt;
+  if (cfg.concurrency) {
+    document.getElementById('concurrency').value = cfg.concurrency;
+    document.getElementById('concLabel').textContent = cfg.concurrency;
+  }
+
+  // 恢复防护等级
+  if (cfg.protectionLevel) {
+    state.protectionLevel = cfg.protectionLevel;
+    document.querySelectorAll('.prot-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.level === cfg.protectionLevel);
+    });
+    document.getElementById('customForm').classList.toggle('visible', cfg.protectionLevel === 'custom');
+  }
+
+  // 恢复攻击类型
+  if (cfg.attackTypes) {
+    state.selectedAttacks = new Set(cfg.attackTypes);
+    document.querySelectorAll('.attack-toggle').forEach(t => {
+      t.classList.toggle('active', state.selectedAttacks.has(t.dataset.id));
+    });
+  }
+
+  // 恢复对比模式
+  if (cfg.compareMode !== undefined) {
+    state.compareMode = cfg.compareMode;
+    document.getElementById('compareSwitch').classList.toggle('on', state.compareMode);
+    document.getElementById('compareConfig').style.display = state.compareMode ? 'block' : 'none';
+  }
+
+  // 恢复对比基线防护等级
+  if (cfg.compareProtectionLevel) {
+    state.compareProtectionLevel = cfg.compareProtectionLevel;
+    document.querySelectorAll('#compareProtCards .prot-card-sm').forEach(c => {
+      c.classList.toggle('active', c.dataset.level === cfg.compareProtectionLevel);
+    });
+    document.getElementById('compareCustomForm').style.display = cfg.compareProtectionLevel === 'custom' ? 'block' : 'none';
+    if (cfg.compareSystemPrompt) document.getElementById('compareSystemPrompt').value = cfg.compareSystemPrompt;
+    if (cfg.cmpChkInput !== undefined) document.getElementById('cmpChkInput').checked = cfg.cmpChkInput;
+    if (cfg.cmpChkTool !== undefined) document.getElementById('cmpChkTool').checked = cfg.cmpChkTool;
+    if (cfg.cmpChkUrl !== undefined) document.getElementById('cmpChkUrl').checked = cfg.cmpChkUrl;
+    if (cfg.cmpChkFile !== undefined) document.getElementById('cmpChkFile').checked = cfg.cmpChkFile;
+    if (cfg.cmpChkEmail !== undefined) document.getElementById('cmpChkEmail').checked = cfg.cmpChkEmail;
+  }
+
+  // 恢复 Judge 开关
+  if (cfg.judgeEnabled !== undefined) {
+    state.judgeEnabled = cfg.judgeEnabled;
+    document.getElementById('judgeSwitch').classList.toggle('on', state.judgeEnabled);
+    document.getElementById('judgeConfig').style.display = state.judgeEnabled ? 'block' : 'none';
+  }
+}
+
+function deleteConfigTemplate() {
+  const sel = document.getElementById('configTemplateSelect');
+  const name = sel.value;
+  if (!name) { alert('请先选择一个配置'); return; }
+  if (!confirm('确认删除配置「' + name + '」？')) return;
+  const templates = getConfigTemplates();
+  delete templates[name];
+  localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(templates));
+  refreshConfigTemplateList();
+}
+
+// 初始化模板列表
+refreshConfigTemplateList();
+
+
+document.querySelectorAll('.prot-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.prot-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    state.protectionLevel = card.dataset.level;
+    document.getElementById('customForm').classList.toggle('visible', state.protectionLevel === 'custom');
+  });
+});
+
+document.getElementById('compareSwitch').addEventListener('click', function() {
+  state.compareMode = !state.compareMode;
+  this.classList.toggle('on', state.compareMode);
+  document.getElementById('compareConfig').style.display = state.compareMode ? 'block' : 'none';
+});
+
+// 对比基线防护等级卡片
+document.querySelectorAll('#compareProtCards .prot-card-sm').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('#compareProtCards .prot-card-sm').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    state.compareProtectionLevel = card.dataset.level;
+    const isCustom = state.compareProtectionLevel === 'custom';
+    document.getElementById('compareCustomForm').style.display = isCustom ? 'block' : 'none';
+  });
+});
+
+document.getElementById('judgeSwitch').addEventListener('click', function() {
+  state.judgeEnabled = !state.judgeEnabled;
+  this.classList.toggle('on', state.judgeEnabled);
+  document.getElementById('judgeConfig').style.display = state.judgeEnabled ? 'block' : 'none';
+});
+
+// ── Batch Compare ──
+document.getElementById('batchCompareSwitch').addEventListener('click', function() {
+  state.batchCompareEnabled = !state.batchCompareEnabled;
+  this.classList.toggle('on', state.batchCompareEnabled);
+  document.getElementById('batchCompareConfig').style.display = state.batchCompareEnabled ? 'block' : 'none';
+  if (state.batchCompareEnabled && batchModelsData.length === 0) {
+    // 初始化：默认添加2个空模型槽
+    addBatchModel();
+    addBatchModel();
+  }
+  renderBatchModels();
+});
+
+function addBatchModel() {
+  batchModelsData.push({label: '', api_key: '', base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat'});
+  renderBatchModels();
+}
+
+function removeBatchModel(idx) {
+  batchModelsData.splice(idx, 1);
+  renderBatchModels();
+}
+
+function renderBatchModels() {
+  const container = document.getElementById('batchModelList');
+  if (!container) return;
+  container.innerHTML = batchModelsData.map((m, i) => `
+    <div class="batch-model-row">
+      <input class="model-label" placeholder="标签" value="${escapeHtml(m.label)}" onchange="batchModelsData[${i}].label=this.value" />
+      <input placeholder="模型名" value="${escapeHtml(m.model)}" onchange="batchModelsData[${i}].model=this.value" style="flex:2" />
+      <input placeholder="Base URL" value="${escapeHtml(m.base_url)}" onchange="batchModelsData[${i}].base_url=this.value" style="flex:2" />
+      <input placeholder="API Key" type="password" value="${escapeHtml(m.api_key)}" onchange="batchModelsData[${i}].api_key=this.value" style="flex:1.5" />
+      <button class="btn-remove" onclick="removeBatchModel(${i})">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+// ── Custom Tools ──
+let customToolsData = [];  // [{name, description, sensitive_category, parameters:[{name,type,description,required}]}]
+let customToolsExpanded = false;
+
+function toggleCustomTools() {
+  customToolsExpanded = !customToolsExpanded;
+  document.getElementById('customToolsPanel').style.display = customToolsExpanded ? 'block' : 'none';
+  document.getElementById('customToolsToggleIcon').style.transform = customToolsExpanded ? 'rotate(0deg)' : 'rotate(-90deg)';
+}
+
+function addCustomTool() {
+  customToolsData.push({
+    name: '', description: '', sensitive_category: 'none',
+    parameters: [{name: 'input', type: 'string', description: '', required: true}]
+  });
+  renderCustomTools();
+}
+
+function removeCustomTool(idx) {
+  customToolsData.splice(idx, 1);
+  renderCustomTools();
+}
+
+function addToolParam(toolIdx) {
+  customToolsData[toolIdx].parameters.push({name: '', type: 'string', description: '', required: false});
+  renderCustomTools();
+}
+
+function removeToolParam(toolIdx, paramIdx) {
+  customToolsData[toolIdx].parameters.splice(paramIdx, 1);
+  renderCustomTools();
+}
+
+function updateToolField(toolIdx, field, value) {
+  customToolsData[toolIdx][field] = value;
+}
+
+function updateParamField(toolIdx, paramIdx, field, value) {
+  customToolsData[toolIdx].parameters[paramIdx][field] = value;
+}
+
+function cycleSensitiveCategory(toolIdx) {
+  const categories = ['none', 'data_read', 'data_exfil', 'code_exec'];
+  const current = customToolsData[toolIdx].sensitive_category || 'none';
+  const next = categories[(categories.indexOf(current) + 1) % categories.length];
+  customToolsData[toolIdx].sensitive_category = next;
+  renderCustomTools();
+}
+
+const CATEGORY_LABELS = {
+  'none': '无敏感',
+  'data_read': '数据读取',
+  'data_exfil': '数据外发',
+  'code_exec': '代码执行',
+};
+
+function renderCustomTools() {
+  const container = document.getElementById('customToolsList');
+  if (customToolsData.length === 0) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--text2);text-align:center;padding:8px">暂未添加自定义工具，将使用内置 6 个默认工具</div>';
+    return;
+  }
+  let html = '';
+  customToolsData.forEach((tool, ti) => {
+    const cat = tool.sensitive_category || 'none';
+    const catLabel = CATEGORY_LABELS[cat] || '无';
+    let paramsHtml = '';
+    tool.parameters.forEach((p, pi) => {
+      paramsHtml += `
+        <div class="param-row">
+          <input type="text" value="${_escHtml(p.name)}" placeholder="参数名" onchange="updateParamField(${ti},${pi},'name',this.value)" />
+          <select onchange="updateParamField(${ti},${pi},'type',this.value)">
+            <option value="string" ${p.type==='string'?'selected':''}>string</option>
+            <option value="integer" ${p.type==='integer'?'selected':''}>integer</option>
+            <option value="boolean" ${p.type==='boolean'?'selected':''}>boolean</option>
+            <option value="number" ${p.type==='number'?'selected':''}>number</option>
+          </select>
+          <input type="text" value="${_escHtml(p.description)}" placeholder="参数描述" style="flex:2" onchange="updateParamField(${ti},${pi},'description',this.value)" />
+          <input type="checkbox" ${p.required?'checked':''} title="必填" style="width:14px;accent-color:var(--accent)" onchange="updateParamField(${ti},${pi},'required',this.checked)" />
+          <button class="param-del" onclick="removeToolParam(${ti},${pi})">&#10005;</button>
+        </div>`;
+    });
+    html += `
+      <div class="tool-card">
+        <div class="tool-header">
+          <input class="tool-name-input" type="text" value="${_escHtml(tool.name)}" placeholder="工具名 (如 read_customer_data)" onchange="updateToolField(${ti},'name',this.value)" />
+          <span class="sensitive-tag ${cat==='data_read'?'data-read':cat==='data_exfil'?'data-exfil':cat==='code_exec'?'code-exec':'none'}" onclick="cycleSensitiveCategory(${ti})" title="点击切换敏感类别">${catLabel}</span>
+          <button class="tool-delete" onclick="removeCustomTool(${ti})">&#10005;</button>
+        </div>
+        <div class="tool-field">
+          <label>工具描述</label>
+          <input type="text" value="${_escHtml(tool.description)}" placeholder="描述工具功能" onchange="updateToolField(${ti},'description',this.value)" style="width:100%;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px" />
+        </div>
+        <div class="tool-field">
+          <label>参数 <span style="font-weight:normal">(勾选=必填)</span></label>
+          ${paramsHtml}
+          <button onclick="addToolParam(${ti})" style="width:100%;padding:3px 0;background:transparent;color:var(--accent);border:1px dashed var(--border);border-radius:4px;font-size:11px;cursor:pointer;margin-top:2px">+ 参数</button>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function _escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function gatherCustomTools() {
+  // 过滤掉没有名字的工具
+  return customToolsData.filter(t => t.name && t.name.trim()).map(t => ({
+    name: t.name.trim(),
+    description: t.description || '',
+    sensitive_category: t.sensitive_category || 'none',
+    parameters: (t.parameters || []).filter(p => p.name && p.name.trim()).map(p => ({
+      name: p.name.trim(),
+      type: p.type || 'string',
+      description: p.description || '',
+      required: !!p.required,
+    })),
+  }));
+}
+
+// 初始渲染
+renderCustomTools();
+
+// ── Run Test ──
+async function runTest() {
+  if (state.running) return;
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const baseUrl = document.getElementById('baseUrl').value.trim();
+  const customModel = document.getElementById('customModel').value.trim();
+  const model = customModel || document.getElementById('modelSelect').value;
+
+  if (!apiKey) { alert('请输入 API Key'); return; }
+  if (state.selectedAttacks.size === 0) { alert('请至少选择一种攻击类型'); return; }
+
+  let customProtection = null;
+  if (state.protectionLevel === 'custom') {
+    customProtection = {
+      name: '自定义防护', description: '用户自定义',
+      system_prompt: document.getElementById('agentSystemPrompt').value || '你是一个助手。',
+      input_check: document.getElementById('chkInput').checked,
+      tool_check: document.getElementById('chkTool').checked,
+      url_whitelist: document.getElementById('chkUrl').checked,
+      file_path_check: document.getElementById('chkFile').checked,
+      email_restriction: document.getElementById('chkEmail').checked,
+    };
+  }
+
+  // 如果用户填了自定义 system prompt，覆盖 protection
+  const agentPrompt = document.getElementById('agentSystemPrompt').value.trim();
+  if (agentPrompt && state.protectionLevel !== 'custom') {
+    customProtection = {
+      name: '自定义 Agent', description: '用户自定义 system prompt',
+      system_prompt: agentPrompt,
+      input_check: state.protectionLevel !== 'low',
+      tool_check: state.protectionLevel === 'high',
+      url_whitelist: state.protectionLevel === 'high',
+      file_path_check: state.protectionLevel === 'high',
+      email_restriction: state.protectionLevel === 'high',
+    };
+  }
+
+  // 对比基线自定义防护
+  let compareCustomProtection = null;
+  if (state.compareProtectionLevel === 'custom') {
+    const cmpPrompt = document.getElementById('compareSystemPrompt').value.trim() || '你是一个助手。';
+    compareCustomProtection = {
+      name: '对比基线自定义', description: '用户自定义对比基线',
+      system_prompt: cmpPrompt,
+      input_check: document.getElementById('cmpChkInput').checked,
+      tool_check: document.getElementById('cmpChkTool').checked,
+      url_whitelist: document.getElementById('cmpChkUrl').checked,
+      file_path_check: document.getElementById('cmpChkFile').checked,
+      email_restriction: document.getElementById('cmpChkEmail').checked,
+    };
+  }
+
+  const body = {
+    api_key: apiKey, base_url: baseUrl, model: model,
+    protection_level: customProtection ? 'custom' : state.protectionLevel,
+    custom_protection: customProtection,
+    attack_types: Array.from(state.selectedAttacks),
+    compare_mode: state.compareMode,
+    compare_protection_level: compareCustomProtection ? 'custom' : state.compareProtectionLevel,
+    compare_custom_protection: compareCustomProtection,
+    max_concurrency: parseInt(document.getElementById('concurrency').value) || 5,
+    judge_enabled: state.judgeEnabled,
+    judge_api_key: document.getElementById('judgeApiKey').value.trim(),
+    judge_base_url: document.getElementById('judgeBaseUrl').value.trim(),
+    judge_model: document.getElementById('judgeModel').value.trim(),
+    custom_tools: gatherCustomTools(),
+  };
+
+  // 多模型对比模式
+  if (state.batchCompareEnabled) {
+    const validModels = batchModelsData.filter(m => m.model && m.api_key);
+    if (validModels.length < 2) { alert('多模型对比需要至少 2 个模型（每个需填写模型名和 API Key）'); return; }
+    await runBatchCompare(validModels, body);
+    return;
+  }
+
+  // UI: loading
+  state.running = true;
+  state.liveHits = [];
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  document.getElementById('btnText').innerHTML = '<div class="spinner"></div> 运行中';
+
+  document.getElementById('emptyState').style.display = 'none';
+  const area = document.getElementById('resultArea');
+  area.innerHTML = renderProgressUI('启动测试...');
+  area.className = 'result-area visible';
+
+  try {
+    const res = await fetch('/api/test', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+
+    // Connect WebSocket for progress
+    connectWS(data.test_id, data.ws_url);
+  } catch(e) {
+    area.innerHTML = `<div class="error-box"><strong>测试失败</strong><br/>${e.message}</div>`;
+    state.running = false;
+    btn.disabled = false;
+    document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+  }
+}
+
+function renderProgressUI(msg) {
+  return `
+  <div class="progress-section">
+    <h3>&#9202; 实时进度</h3>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progFill" style="width:0%"></div>
+      <div class="progress-bar-text" id="progText">0%</div>
+    </div>
+    <div id="stageLabel" style="font-size:12px;color:var(--text2);margin-bottom:8px">${msg}</div>
+    <div class="live-log" id="liveLog"></div>
+  </div>
+  <div id="resultBody"></div>`;
+}
+
+function connectWS(testId, wsUrl) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${proto}://${location.host}/ws/${testId}`;
+  let ws;
+  try { ws = new WebSocket(url); } catch(e) { ws = new WebSocket(wsUrl); }
+  state.ws = ws;
+
+  ws.onmessage = function(event) {
+    try {
+      const data = JSON.parse(event.data);
+      handleProgress(data);
+    } catch(e) {
+      console.warn('WS parse error:', e);
+    }
+  };
+
+  ws.onclose = function() {
+    // 后端主动关闭 WS 表示测试完成，仅在此处兜底
+    // 正常流程由 phase:'done' 触发 fetchFinalResult
+    if (state.running) {
+      fetchFinalResult(testId);
+    }
+  };
+
+  ws.onerror = function() {
+    // fallback: poll
+    setTimeout(() => pollResult(testId), 2000);
+  };
+}
+
+function handleProgress(data) {
+  const fill = document.getElementById('progFill');
+  const text = document.getElementById('progText');
+  const stage = document.getElementById('stageLabel');
+  const log = document.getElementById('liveLog');
+
+  if (data.phase === 'setup') {
+    if (stage) stage.textContent = `准备载荷: ${data.total_payloads} 个 / 攻击类型: ${(data.attack_types||[]).join(', ')}`;
+  }
+  else if (data.phase === 'stage') {
+    if (stage) stage.textContent = `阶段: ${data.label}`;
+  }
+  else if (data.phase === 'progress') {
+    const pct = Math.round(data.completed / Math.max(data.total, 1) * 100);
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = `${data.completed}/${data.total} (${pct}%)`;
+
+    const r = data.latest;
+    if (r) {
+      const cls = r.success ? 'hit' : 'miss';
+      const mark = r.success ? '[击穿]' : '[未中]';
+      const line = `${mark} ${r.variant || r.type} | ${r.channel || ''} | 分=${r.score || 0}`;
+      if (log) log.innerHTML += `<div class="${cls}">${line}</div>`;
+      if (log) log.scrollTop = log.scrollHeight;
+      if (r.success) state.liveHits.push(r);
+    }
+  }
+  else if (data.phase === 'multi_turn') {
+    if (stage) stage.textContent = `多轮对话: ${data.scenario}`;
+  }
+  else if (data.phase === 'done') {
+    // 后端已将结果写入 _test_sessions，安全获取
+    fetchFinalResult(data.test_id);
+  }
+}
+
+async function fetchFinalResult(testId, retries = 0) {
+  const MAX_RETRIES = 30;  // 最多重试 30 次（约 90 秒）
+  const RETRY_INTERVAL = 3000;  // 每次间隔 3 秒
+  try {
+    const res = await fetch(`/api/test/${testId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderResult(data);
+    // 成功渲染后重置状态
+    state.running = false;
+    document.getElementById('btnRun').disabled = false;
+    document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+    loadHistory();
+  } catch(e) {
+    if (retries < MAX_RETRIES) {
+      // 可能还在运行，等一下再试
+      setTimeout(() => fetchFinalResult(testId, retries + 1), RETRY_INTERVAL);
+    } else {
+      // 超过最大重试次数，显示错误
+      const area = document.getElementById('resultArea');
+      area.innerHTML = `<div class="error-box"><strong>获取结果超时</strong><br/>测试可能仍在运行，请稍后刷新页面。测试ID: ${testId}</div>`;
+      state.running = false;
+      document.getElementById('btnRun').disabled = false;
+      document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+    }
+  }
+}
+
+function pollResult(testId, retries = 0) {
+  const MAX_RETRIES = 30;  // 最多轮询 30 次（约 90 秒）
+  if (!state.running || retries >= MAX_RETRIES) {
+    state.running = false;
+    document.getElementById('btnRun').disabled = false;
+    document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+    return;
+  }
+  fetch(`/api/test/${testId}`).then(r => r.json()).then(data => {
+    if (data.error || data.finished_at) {
+      renderResult(data);
+      state.running = false;
+      document.getElementById('btnRun').disabled = false;
+      document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+      loadHistory();
+    } else {
+      setTimeout(() => pollResult(testId, retries + 1), 3000);
+    }
+  }).catch(() => setTimeout(() => pollResult(testId, retries + 1), 3000));
+}
+
+// ── Render Final Result ──
+function renderResult(data) {
+  const area = document.getElementById('resultArea');
+  if (data.error && !data.protected) {
+    area.innerHTML = `<div class="error-box"><strong>测试出错</strong><br/>${data.error}</div>`;
+    return;
+  }
+
+  const prot = data.protected || {};
+  const bare = data.bare || null;
+  const cmp = data.comparison || null;
+  const multi = data.multi_turn || null;
+  const rc = (v) => v >= 60 ? 'risk-high' : v >= 30 ? 'risk-medium' : 'risk-low';
+
+  let html = '';
+
+  // Stats
+  const calibrated = data.calibrated || null;
+  const showCalibrated = calibrated && calibrated.corrected_count > 0;
+  html += `<div class="stats-row">`;
+  html += statCard(rc(prot.overall_risk_score||0), prot.overall_risk_score??'-', '风险评分');
+  html += statCard(rc(prot.attack_success_rate||0), (prot.attack_success_rate??'-')+'%', '攻击成功率');
+  if (showCalibrated) {
+    html += statCard(rc(calibrated.calibrated_success_rate||0), (calibrated.calibrated_success_rate??'-')+'%', '校准成功率');
+  }
+  html += statCard('info', prot.total_findings??'-', '安全问题');
+  html += statCard('info', prot.total_payloads??data.payload_count??'-', '载荷数');
+  html += `</div>`;
+
+  // Network errors warning
+  const netErrors = prot.network_errors || 0;
+  if (netErrors > 0) {
+    const netDetails = prot.network_error_details || [];
+    html += `<div style="background:rgba(253,203,110,.1);border:1px solid var(--yellow);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px">`;
+    html += `<strong style="color:var(--yellow)">&#9888; ${netErrors} 个载荷因网络错误未能完成测试</strong><br/>`;
+    html += `<span style="color:var(--text2);font-size:11px">可能是 API 连接超时或代理不可用，这些载荷不计入攻击成功率统计。</span>`;
+    if (netDetails.length > 0) {
+      html += `<div style="margin-top:6px;font-size:11px;font-family:Consolas,monospace;color:var(--text2)">`;
+      netDetails.forEach(d => { html += `<div>- ${escapeHtml(d.description)}</div>`; });
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Comparison
+  if (cmp && bare) {
+    const ic = cmp.improvement > 0 ? 'good' : 'bad';
+    const it = cmp.improvement > 0
+      ? `&#9650; 防护改善了 ${cmp.improvement}% 攻击成功率`
+      : `&#9660; 防护未能降低攻击率（差值 ${cmp.improvement}%）`;
+    const baseLabel = cmp.base_label || '基线';
+    const protLabel = cmp.protected_label || '防护';
+    const labelMap = {none:'无防护', low:'低级防护', medium:'中级防护', high:'高级防护', custom:'自定义'};
+    const baseName = labelMap[baseLabel] || baseLabel;
+    const protName = labelMap[protLabel] || protLabel;
+    html += `<div class="compare-section"><h3>&#128200; 对比: ${baseName} vs ${protName}</h3>
+      <div class="compare-grid">
+        <div class="compare-col"><div class="tag bare">${baseName}</div><div class="big-num" style="color:var(--red)">${bare.attack_success_rate??'-'}%</div><div class="sub">攻击成功率</div><div class="sub">风险: ${bare.overall_risk_score??'-'}</div></div>
+        <div class="compare-arrow">&#10132;</div>
+        <div class="compare-col"><div class="tag protected">${protName}</div><div class="big-num" style="color:var(--green)">${prot.attack_success_rate??'-'}%</div><div class="sub">攻击成功率</div><div class="sub">风险: ${prot.overall_risk_score??'-'}</div></div>
+      </div>
+      <div style="text-align:center"><span class="improvement-badge ${ic}" id="manualCmpImprovement">${it}</span></div>
+    </div>`;
+  }
+
+  // Multi-turn results
+  if (multi) {
+    const mDetails = multi.attack_details || [];
+    html += `<div class="details-section"><h3>&#128260; 多轮对话攻击 (${multi.successful_attacks??0}/${multi.total_scenarios??0} 成功)</h3>`;
+    if (mDetails.length > 0) {
+      html += `<table><thead><tr><th>场景</th><th>结果</th><th>描述</th></tr></thead><tbody>`;
+      mDetails.forEach(d => {
+        html += `<tr><td><span class="tag-sm multi-turn">${escapeHtml(d.variant||'')}</span></td><td style="color:${d.success?'var(--red)':'var(--green)'};font-weight:700">${d.success?'击穿':'未中'}</td><td>${escapeHtml(d.description||'')}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+    }
+    html += `</div>`;
+  }
+
+  // Judge LLM results
+  const judgeResults = data.judge_results || [];
+  if (judgeResults.length > 0) {
+    html += `<div class="details-section"><h3>&#9878; Judge LLM 语义评审 (${judgeResults.length} 条)</h3>`;
+    // 校准摘要
+    if (showCalibrated) {
+      html += `<div style="padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">`;
+      html += `<div style="font-size:13px;font-weight:700;margin-bottom:6px">误判校准摘要</div>`;
+      html += `<div style="display:flex;gap:20px;font-size:12px">`;
+      html += `<span>原始成功率: <strong style="color:var(--red)">${calibrated.original_success_rate}%</strong></span>`;
+      html += `<span>校准成功率: <strong style="color:var(--green)">${calibrated.calibrated_success_rate}%</strong></span>`;
+      html += `<span>Judge 修正: <strong style="color:var(--accent)">${calibrated.corrected_count} 次</strong></span>`;
+      html += `</div></div>`;
+    }
+    html += `<table><thead><tr><th>攻击</th><th>Judge 判定</th><th>严重度</th><th>置信度</th><th>理由</th></tr></thead><tbody>`;
+    judgeResults.forEach(jr => {
+      const j = jr.judge || {};
+      const judgeColor = j.is_attack === true ? 'var(--red)' : j.is_attack === false ? 'var(--green)' : 'var(--text2)';
+      html += `<tr><td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(jr.description||jr.variant||'')}</td>`;
+      html += `<td style="color:${judgeColor};font-weight:700">${j.is_attack === true ? '攻击确认' : j.is_attack === false ? '误判/安全' : '无法判断'}</td>`;
+      html += `<td>${escapeHtml(j.severity||'-')}</td><td>${j.confidence||0}%</td><td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(j.reason||'')}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  // Remediation
+  const remediation = data.remediation || [];
+  if (remediation.length > 0) {
+    html += `<div class="details-section"><h3>&#128295; 修复建议 (${remediation.length} 条)</h3>`;
+    const pColors = {critical:'#e74c3c', high:'#e17055', medium:'#fdcb6e', low:'#00b894', info:'#8b8fa3'};
+    remediation.forEach(r => {
+      const c = pColors[r.priority] || '#8b8fa3';
+      html += `<div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px">`;
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">`;
+      html += `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;background:${c}">${r.priority.toUpperCase()}</span>`;
+      html += `<strong style="font-size:13px">${r.category}</strong></div>`;
+      html += `<div style="font-size:12px;color:var(--text2);margin-bottom:4px">${escapeHtml(r.issue)}</div>`;
+      html += `<div style="font-size:12px;color:var(--green)">&#10148; ${escapeHtml(r.suggestion)}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Attack details — 支持手动调整判定
+  const details = prot.attack_details || [];
+  // 同时收集所有载荷结果（成功+失败），用于手动调整
+  const allPayloadResults = data._all_payload_results || [];
+
+  // 手动调整对比区域
+  html += '<div class="details-section" id="manualAdjSection">';
+  html += '<h3>&#9878; 手动调整对比</h3>';
+  html += '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">标记你认为是误判的攻击，重新计算校准成功率</div>';
+  html += '<div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">';
+  html += '<div>原始成功率: <strong style="color:var(--red)">' + (prot.attack_success_rate||0) + '%</strong></div>';
+  html += '<div>手动校准: <strong style="color:var(--green)" id="manualAdjRate">--</strong></div>';
+  html += '<div>已标记误判: <strong style="color:var(--accent)" id="manualAdjCount">0</strong></div>';
+  html += '<button onclick="recalcManualAdj()" style="padding:4px 12px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer">重新计算</button>';
+  html += '</div></div>';
+
+  // 成功击穿详情表格
+  if (details.length > 0) {
+    html += `<div class="details-section"><h3>&#128165; 成功击穿详情 (${details.length})</h3>
+      <table><thead><tr><th>调整</th><th>类型</th><th>变体</th><th>通道</th><th>风险分</th><th>工具调用证据</th><th>描述</th><th>回放</th></tr></thead><tbody>`;
+    details.forEach((d, idx) => {
+      const tc = d.type.includes('tool_output') ? 'tool-output-inject' : d.type.includes('prompt_leak') ? 'prompt-leak' : d.type.includes('tool') ? 'tool-abuse' : d.type.includes('direct') ? 'direct' : d.type.includes('jail') ? 'jailbreak' : d.type.includes('multi') ? 'multi-turn' : 'injection';
+      const chkId = 'adj_' + idx;
+      // 构建证据链展示
+      const evidence = d.tool_call_evidence || [];
+      let toolHtml = '';
+      if (evidence.length > 0) {
+        toolHtml = evidence.map((e, ei) => {
+          const argStr = JSON.stringify(e.arguments || {});
+          const argDisplay = argStr.length > 80 ? argStr.substring(0, 77) + '...' : argStr;
+          const blocked = e.blocked ? ' <span style="color:var(--yellow);font-size:9px">[已拦截]</span>' : '';
+          const resultStr = e.simulated_result ? (' <span style="color:var(--text2);font-size:9px">&#8594; ' + escapeHtml(e.simulated_result.substring(0, 40)) + (e.simulated_result.length > 40 ? '...' : '') + ' [模拟]</span>') : '';
+          return `<div style="margin-bottom:3px"><span style="color:var(--accent);font-weight:600">${escapeHtml(e.name)}</span>(${escapeHtml(argDisplay)})${blocked}${resultStr}</div>`;
+        }).join('');
+      } else {
+        toolHtml = (d.tools_called||[]).map(escapeHtml).join(', ') || '-';
+      }
+      html += `<tr id="adjRow_${idx}"><td><input type="checkbox" class="adj-chk" data-idx="${idx}" title="标记为误判" /></td><td><span class="tag-sm ${tc}">${escapeHtml(d.type)}</span></td><td>${escapeHtml(d.variant)}</td><td>${escapeHtml(d.channel)}</td><td style="color:var(--red);font-weight:700">${d.score}</td><td style="max-width:320px;font-size:11px;font-family:Consolas,monospace;white-space:nowrap;overflow-x:auto">${toolHtml}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(d.description||'')}">${escapeHtml(d.description||'')}</td><td><button onclick="openReplay('${data.test_id}', ${idx})" style="padding:3px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600">&#128254; 回放</button></td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  // Report + Export
+  if (data.report_markdown) {
+    html += `<div class="report-section"><h3>&#128196; 测试报告</h3><div class="report-md" id="reportMd"></div></div>`;
+  }
+  // Export buttons
+  html += `<div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px">`;
+  html += `<a href="/api/test/${data.test_id}/report?format=markdown" download="report_${data.test_id}.md" style="padding:8px 16px;background:var(--accent);color:#fff;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">&#128196; 导出 Markdown</a>`;
+  html += `<a href="/api/test/${data.test_id}/report?format=json" download="report_${data.test_id}.json" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">&#128203; 导出 JSON</a>`;
+  html += `</div>`;
+
+  html += `<div style="text-align:center;color:var(--text2);font-size:11px;padding:16px 0">ID: ${escapeHtml(data.test_id || '')} | ${escapeHtml(data.model || '')} | ${escapeHtml(data.protection_level || '')} | ${escapeHtml(data.started_at || '')} &rarr; ${escapeHtml(data.finished_at || '')}</div>`;
+
+  // 存储当前结果供手动调整使用
+  window._currentResult = data;
+
+  area.innerHTML = html;
+
+  // 安全赋值 report_markdown（避免 escapeHtml 破坏 Markdown 格式，同时防 XSS）
+  const reportEl = document.getElementById('reportMd');
+  if (reportEl && data.report_markdown) {
+    reportEl.textContent = data.report_markdown;
+  }
+
+  area.className = 'result-area visible';
+}
+
+function statCard(cls, val, label) {
+  return `<div class="stat-card ${cls}"><div class="value">${val}</div><div class="label">${label}</div></div>`;
+}
+
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ── Manual Adjustment ──
+function recalcManualAdj() {
+  const area = document.getElementById('resultArea');
+  // 获取所有调整复选框
+  const checkboxes = area.querySelectorAll('.adj-chk');
+  let markedCount = 0;
+  checkboxes.forEach(chk => {
+    const row = chk.closest('tr');
+    if (chk.checked) {
+      markedCount++;
+      row.style.opacity = '0.4';
+      row.style.textDecoration = 'line-through';
+    } else {
+      row.style.opacity = '';
+      row.style.textDecoration = '';
+    }
+  });
+
+  // 从当前页面数据重新计算
+  const prot = window._currentResult?.protected || {};
+  const total = prot.total_payloads || 0;
+  const originalSuccess = prot.successful_attacks || 0;
+  const adjustedSuccess = originalSuccess - markedCount;
+  const adjustedRate = total > 0 ? (adjustedSuccess / total * 100).toFixed(1) : 0;
+
+  document.getElementById('manualAdjRate').textContent = adjustedRate + '%';
+  document.getElementById('manualAdjCount').textContent = markedCount;
+
+  // 同时更新对比区域
+  const cmpEl = document.getElementById('manualCmpImprovement');
+  if (cmpEl && window._currentResult?.comparison) {
+    const bareRate = window._currentResult.comparison.base_rate || 0;
+    const newImprovement = (bareRate - parseFloat(adjustedRate)).toFixed(1);
+    cmpEl.textContent = (parseFloat(newImprovement) > 0 ? '▲ 防护降低了 ' : '▼ ') + Math.abs(newImprovement) + '% 攻击成功率';
+    cmpEl.style.color = parseFloat(newImprovement) > 0 ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+// ── History ──
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    const c = document.getElementById('historyList');
+    if (!data.tests || !data.tests.length) { c.innerHTML = '<div style="color:var(--text2);font-size:11px;">暂无</div>'; return; }
+    c.innerHTML = data.tests.map(t => `<div class="history-item" onclick="loadTest('${t.id}')"><strong>${t.model}</strong> / ${t.protection} &mdash; ${t.started||''}</div>`).join('');
+  } catch(e) {}
+}
+
+async function loadTest(id) {
+  const area = document.getElementById('resultArea');
+  area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2)"><div class="spinner" style="margin:0 auto 12px"></div>加载中...</div>';
+  area.className = 'result-area visible';
+  document.getElementById('emptyState').style.display = 'none';
+  try {
+    const res = await fetch(`/api/test/${id}`);
+    const data = await res.json();
+    renderResult(data);
+    switchTab('result');
+  } catch(e) {
+    area.innerHTML = `<div class="error-box">加载失败: ${escapeHtml(e.message)}</div>`;
+    console.error(e);
+  }
+}
+
+// ── Tab Switching ──
+function switchTab(tab) {
+  document.getElementById('tabResult').classList.toggle('active', tab === 'result');
+  document.getElementById('tabTrend').classList.toggle('active', tab === 'trend');
+  const empty = document.getElementById('emptyState');
+  const result = document.getElementById('resultArea');
+  const trend = document.getElementById('trendArea');
+  if (tab === 'result') {
+    result.style.display = '';
+    trend.style.display = 'none';
+    empty.style.display = result.innerHTML ? 'none' : '';
+  } else {
+    result.style.display = 'none';
+    trend.style.display = '';
+    empty.style.display = 'none';
+    renderTrendChart();
+  }
+}
+
+// ── Trend Chart ──
+async function renderTrendChart() {
+  const area = document.getElementById('trendArea');
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    const tests = (data.tests || []).slice().reverse(); // 按时间正序
+    if (tests.length < 1) {
+      area.innerHTML = '<div style="text-align:center;color:var(--text2);padding:40px 0">暂无测试记录，完成测试后即可查看趋势</div>';
+      return;
+    }
+
+    const rates = tests.map(t => t.success_rate || 0);
+    const hasBare = tests.some(t => (t.base_rate !== null && t.base_rate !== undefined));
+    const hasCal = tests.some(t => t.calibrated_rate !== null && t.calibrated_rate !== undefined);
+
+    let html = '<div class="trend-chart">';
+    html += '<div style="font-size:14px;font-weight:700;margin-bottom:4px">攻击成功率趋势</div>';
+    html += '<div style="font-size:11px;color:var(--text2);margin-bottom:12px">展示历次测试的攻击成功率变化，红色边框标记回归风险</div>';
+    html += '<div class="trend-legend">';
+    html += '<span><span class="dot" style="background:var(--accent)"></span>防护Agent</span>';
+    if (hasBare) html += '<span><span class="dot" style="background:var(--red)"></span>裸LLM</span>';
+    if (hasCal) html += '<span><span class="dot" style="background:var(--green)"></span>校准后</span>';
+    html += '<span><span class="dot" style="background:transparent;border:2px solid var(--red)"></span>回归风险</span>';
+    html += '</div>';
+
+    // Y轴刻度 + 柱状图
+    html += '<div style="position:relative;display:flex;height:180px;padding-left:30px;margin-top:8px">';
+    // Y轴标签
+    html += '<div style="position:absolute;left:0;top:0;bottom:20px;display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:var(--text2);width:26px;text-align:right">';
+    html += '<span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>';
+    // 网格线
+    html += '<div style="position:absolute;left:30px;right:0;top:0;bottom:20px">';
+    for (let y = 0; y <= 4; y++) {
+      html += `<div style="position:absolute;left:0;right:0;top:${y*25}%;border-top:1px dashed var(--border)"></div>`;
+    }
+    html += '</div>';
+    // 柱子容器
+    html += '<div style="position:relative;flex:1;display:flex;align-items:flex-end;gap:3px;padding-bottom:20px">';
+
+    tests.forEach((t, i) => {
+      const rate = t.success_rate || 0;
+      const bareRate = (t.base_rate !== null && t.base_rate !== undefined) ? t.base_rate : null;
+      const calRate = (t.calibrated_rate !== null && t.calibrated_rate !== undefined) ? t.calibrated_rate : null;
+
+      let isRegression = false;
+      if (i > 0 && (rate - (tests[i-1].success_rate || 0)) >= 10) isRegression = true;
+
+      const date = (t.started || '').slice(5, 10) || '#' + (i+1);
+      const color = rate >= 60 ? '#e74c3c' : rate >= 30 ? '#e17055' : '#00b894';
+
+      html += '<div class="trend-col ' + (isRegression ? 'regression' : '') + '" onclick="loadTest(\'' + t.id + '\')" style="position:relative">';
+      html += '<div class="tooltip">' + t.model + ' / ' + t.protection + (isRegression ? ' [回归]' : '') + '<br>防护: ' + rate + '%' + (bareRate !== null ? '<br>裸LLM: ' + bareRate + '%' : '') + (calRate !== null ? '<br>校准: ' + calRate + '%' : '') + '</div>';
+      // 裸LLM 柱（半透明红色，靠左）
+      if (bareRate !== null) {
+        html += '<div style="position:absolute;bottom:0;left:0;width:40%;height:' + Math.max(bareRate, 1) + '%;background:var(--red);opacity:0.3;border-radius:3px 3px 0 0"></div>';
+      }
+      // 校准柱（绿色，靠右）
+      if (calRate !== null && Math.abs(calRate - rate) > 1) {
+        html += '<div style="position:absolute;bottom:0;right:0;width:40%;height:' + Math.max(calRate, 1) + '%;background:var(--green);opacity:0.5;border-radius:3px 3px 0 0"></div>';
+      }
+      // 防护Agent柱（主柱，居中）
+      html += '<div class="val" style="color:' + color + '">' + rate + '%</div>';
+      html += '<div class="bar" style="height:' + Math.max(rate, 1) + '%;background:' + color + '"></div>';
+      html += '<div class="label">' + date + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div></div>';
+
+    // 统计摘要
+    const avgRate = (rates.reduce((a,b) => a+b, 0) / rates.length).toFixed(1);
+    const regressionCount = rates.filter((r, i) => i > 0 && r - rates[i-1] >= 10).length;
+    html += '<div class="trend-chart"><div style="font-size:14px;font-weight:700;margin-bottom:8px">统计摘要</div>';
+    html += '<div style="display:flex;gap:20px;font-size:12px;flex-wrap:wrap">';
+    html += '<div>总测试: <strong>' + tests.length + '</strong> 次</div>';
+    html += '<div>平均成功率: <strong style="color:' + (avgRate>=40?'var(--red)':'var(--green)') + '">' + avgRate + '%</strong></div>';
+    html += '<div>最低: <strong>' + Math.min(...rates) + '%</strong></div>';
+    html += '<div>最高: <strong>' + Math.max(...rates) + '%</strong></div>';
+    html += '<div>回归次数: <strong style="color:' + (regressionCount>0?'var(--red)':'var(--green)') + '">' + regressionCount + '</strong></div>';
+    html += '</div></div>';
+
+    area.innerHTML = html;
+  } catch(e) {
+    area.innerHTML = '<div style="color:var(--red);padding:20px">加载趋势数据失败: ' + e.message + '</div>';
+    console.error(e);
+  }
+}
+
+// ── Replay (Attack Chain Replay) ──
+let _replayTrace = [];
+let _replayStep = 0;
+let _replayTimer = null;
+
+function openReplay(testId, detailIdx) {
+  // 先从当前结果中直接获取 trace（如果已有）
+  const data = window._currentResult || {};
+  const prot = data.protected || {};
+  const details = prot.attack_details || [];
+  const detail = details[detailIdx];
+
+  if (detail && detail.conversation_trace && detail.conversation_trace.length > 0) {
+    _replayTrace = detail.conversation_trace;
+    _showReplayModal(detail);
+  } else {
+    // 回退：从 API 获取
+    fetch(`/api/test/${testId}/replay/${detailIdx}`)
+      .then(r => r.json())
+      .then(replay => {
+        _replayTrace = replay.trace || [];
+        _showReplayModal(detail || replay);
+      })
+      .catch(e => alert('加载回放数据失败: ' + e.message));
+  }
+}
+
+function _showReplayModal(detail) {
+  _replayStep = 0;
+  if (_replayTimer) { clearInterval(_replayTimer); _replayTimer = null; }
+
+  const title = `攻击链回放: ${escapeHtml(detail.type || '')} / ${escapeHtml(detail.variant || '')}`;
+  document.getElementById('replayTitle').innerHTML = '&#128254; ' + title;
+
+  const body = document.getElementById('replayBody');
+  if (_replayTrace.length === 0) {
+    body.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px">无对话记录数据</div>';
+  } else {
+    // 预渲染所有步骤（初始隐藏）
+    body.innerHTML = _replayTrace.map((step, i) => {
+      const stepType = step.type || '';
+      let labelClass = 'assistant';
+      let labelText = 'LLM 响应';
+      if (stepType === 'system_prompt') { labelClass = 'system'; labelText = 'System Prompt'; }
+      else if (stepType === 'user_input') { labelClass = 'user'; labelText = '用户输入（攻击载荷）'; }
+      else if (stepType === 'input_check') { labelClass = 'blocked'; labelText = '输入检测（拦截）'; }
+      else if (stepType === 'llm_response') { labelClass = 'assistant'; labelText = 'LLM 响应'; }
+
+      let content = '';
+      if (stepType === 'system_prompt' || stepType === 'user_input' || stepType === 'input_check') {
+        content = escapeHtml(step.content || step.detail || '');
+      } else if (stepType === 'llm_response') {
+        content = escapeHtml(step.content || '');
+        if (step.tool_calls && step.tool_calls.length > 0) {
+          content += '\n\n--- Tool Calls ---\n';
+          step.tool_calls.forEach(tc => {
+            const argStr = JSON.stringify(tc.arguments || {});
+            content += `\n${escapeHtml(tc.name)}(${escapeHtml(argStr.length > 100 ? argStr.substring(0,97)+'...' : argStr)})`;
+            if (tc.blocked) content += '\n  [被拦截] ' + escapeHtml(tc.result || '');
+            else content += '\n  -> ' + escapeHtml((tc.result || '').substring(0, 100));
+          });
+        }
+      }
+
+      return `<div class="replay-step" id="replayStep_${i}">
+        <div class="step-label ${labelClass}"><span>${labelText}</span></div>
+        <div class="step-content">${content}</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('replayOverlay').style.display = 'flex';
+  document.getElementById('replayPlayBtn').innerHTML = '&#9654; 自动播放';
+  _updateReplayProgress();
+}
+
+function closeReplay() {
+  if (_replayTimer) { clearInterval(_replayTimer); _replayTimer = null; }
+  document.getElementById('replayOverlay').style.display = 'none';
+}
+
+function _updateReplayProgress() {
+  document.getElementById('replayProgress').textContent = `${_replayStep} / ${_replayTrace.length} 步`;
+}
+
+function replayNextStep() {
+  if (_replayStep >= _replayTrace.length) return;
+  const el = document.getElementById('replayStep_' + _replayStep);
+  if (el) {
+    el.classList.add('visible');
+    el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  }
+  _replayStep++;
+  _updateReplayProgress();
+}
+
+function replayShowAll() {
+  if (_replayTimer) { clearInterval(_replayTimer); _replayTimer = null; }
+  for (let i = 0; i < _replayTrace.length; i++) {
+    const el = document.getElementById('replayStep_' + i);
+    if (el) el.classList.add('visible');
+  }
+  _replayStep = _replayTrace.length;
+  _updateReplayProgress();
+  document.getElementById('replayPlayBtn').innerHTML = '&#9654; 自动播放';
+}
+
+function replayAutoPlay() {
+  if (_replayTimer) {
+    // 暂停
+    clearInterval(_replayTimer);
+    _replayTimer = null;
+    document.getElementById('replayPlayBtn').innerHTML = '&#9654; 继续播放';
+    return;
+  }
+  document.getElementById('replayPlayBtn').innerHTML = '&#9646;&#9646; 暂停';
+  _replayTimer = setInterval(() => {
+    if (_replayStep >= _replayTrace.length) {
+      clearInterval(_replayTimer);
+      _replayTimer = null;
+      document.getElementById('replayPlayBtn').innerHTML = '&#9654; 自动播放';
+      return;
+    }
+    replayNextStep();
+  }, 1200);
+}
+
+// ── Batch Compare ──
+async function runBatchCompare(models, baseConfig) {
+  state.running = true;
+  state.liveHits = [];
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true;
+  document.getElementById('btnText').innerHTML = '<div class="spinner"></div> 多模型对比中';
+
+  document.getElementById('emptyState').style.display = 'none';
+  const area = document.getElementById('resultArea');
+  area.innerHTML = renderProgressUI('启动多模型批量对比...');
+  area.className = 'result-area visible';
+
+  const body = {
+    models: models.map(m => ({
+      label: m.label || m.model,
+      api_key: m.api_key,
+      base_url: m.base_url,
+      model: m.model,
+    })),
+    protection_level: baseConfig.protection_level,
+    custom_protection: baseConfig.custom_protection,
+    compare_protection_level: baseConfig.compare_protection_level,
+    compare_custom_protection: baseConfig.compare_custom_protection,
+    attack_types: baseConfig.attack_types,
+    max_concurrency: Math.max(2, Math.floor((parseInt(document.getElementById('concurrency').value) || 5) / models.length)),
+    custom_tools: baseConfig.custom_tools,
+  };
+
+  try {
+    const res = await fetch('/api/batch-compare', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+
+    // 连接 WS 获取进度
+    connectWS(data.test_id, data.ws_url);
+
+    // 轮询获取最终结果
+    pollBatchCompareResult(data.test_id);
+  } catch(e) {
+    area.innerHTML = `<div class="error-box"><strong>多模型对比失败</strong><br/>${e.message}</div>`;
+    state.running = false;
+    btn.disabled = false;
+    document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+  }
+}
+
+function pollBatchCompareResult(testId, retries) {
+  retries = retries || 0;
+  if (retries > 60) {
+    const area = document.getElementById('resultArea');
+    area.innerHTML = '<div class="error-box">等待超时</div>';
+    state.running = false;
+    document.getElementById('btnRun').disabled = false;
+    document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+    return;
+  }
+  setTimeout(() => {
+    fetch(`/api/test/${testId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.type === 'batch_compare' || (data.models && data.models.length > 0)) {
+          renderBatchCompareResult(data);
+          state.running = false;
+          document.getElementById('btnRun').disabled = false;
+          document.getElementById('btnText').innerHTML = '&#9654; 开始测试';
+        } else {
+          pollBatchCompareResult(testId, retries + 1);
+        }
+      })
+      .catch(() => pollBatchCompareResult(testId, retries + 1));
+  }, 3000);
+}
+
+function renderBatchCompareResult(data) {
+  const area = document.getElementById('resultArea');
+  const models = data.models || [];
+
+  let html = '<div class="stats-row">';
+  html += statCard('info', models.length, '对比模型数');
+  html += statCard('info', models[0]?.protected?.total_payloads || '-', '载荷数');
+  html += '</div>';
+
+  html += '<div class="details-section"><h3>&#128200; 多模型安全性对比</h3>';
+
+  if (models.length > 0) {
+    // 表头
+    html += '<table class="batch-compare-table"><thead><tr>';
+    html += '<th>模型</th><th>攻击成功率</th><th>风险评分</th><th>风险等级</th><th>成功击穿</th><th>网络错误</th><th>防护改善</th>';
+    html += '</tr></thead><tbody>';
+
+    // 找出最优模型（成功率最低）
+    const validModels = models.filter(m => m.protected && !m.error);
+    const bestRate = Math.min(...validModels.map(m => m.protected.attack_success_rate || 999));
+
+    models.forEach(m => {
+      if (m.error) {
+        html += `<tr><td class="model-name">${escapeHtml(m.model_label || m.model)}</td>`;
+        html += `<td colspan="6" style="color:var(--red);font-size:11px">错误: ${escapeHtml(m.error.substring(0, 100))}</td></tr>`;
+        return;
+      }
+      const prot = m.protected || {};
+      const cmp = m.comparison || {};
+      const rate = prot.attack_success_rate ?? '-';
+      const score = prot.overall_risk_score ?? '-';
+      const level = prot.overall_risk_level ?? '-';
+      const attacks = prot.successful_attacks ?? '-';
+      const netErrors = prot.network_errors || 0;
+      const improvement = cmp.improvement ?? '-';
+
+      const isBest = rate === bestRate && rate !== '-';
+      const cls = isBest ? 'batch-winner' : '';
+
+      html += `<tr>`;
+      html += `<td class="model-name ${cls}">${escapeHtml(m.model_label || m.model)}${isBest ? ' &#9733;' : ''}</td>`;
+      html += `<td class="${rate >= 60 ? 'batch-loser' : rate < 30 ? 'batch-winner' : ''}" style="font-weight:700">${rate}%</td>`;
+      html += `<td>${score}</td>`;
+      html += `<td>${level}</td>`;
+      html += `<td>${attacks}</td>`;
+      html += `<td>${netErrors > 0 ? '<span style="color:var(--yellow)">' + netErrors + '</span>' : '0'}</td>`;
+      html += `<td>${improvement !== '-' ? (improvement > 0 ? '<span style="color:var(--green)">&#9650; ' + improvement + '%</span>' : '<span style="color:var(--red)">&#9660; ' + improvement + '%</span>') : '-'}</td>`;
+      html += `</tr>`;
+    });
+
+    html += '</tbody></table>';
+
+    // 柱状图对比
+    html += '<div style="margin-top:20px"><div style="font-size:13px;font-weight:700;margin-bottom:10px">攻击成功率对比图</div>';
+    html += '<div style="display:flex;gap:12px;align-items:flex-end;height:120px;padding:0 20px">';
+    models.forEach(m => {
+      if (m.error) return;
+      const rate = m.protected?.attack_success_rate || 0;
+      const bareRate = m.bare?.attack_success_rate || 0;
+      const color = rate >= 60 ? '#e74c3c' : rate >= 30 ? '#e17055' : '#00b894';
+      html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">`;
+      html += `<div style="font-size:11px;font-weight:700;color:${color}">${rate}%</div>`;
+      html += `<div style="width:100%;max-width:60px;background:${color};height:${Math.max(rate, 2)}px;border-radius:4px 4px 0 0"></div>`;
+      if (bareRate > 0) {
+        html += `<div style="width:100%;max-width:60px;background:var(--red);opacity:0.3;height:${Math.max(bareRate, 2)}px;border-radius:4px 4px 0 0;margin-top:-2px"></div>`;
+      }
+      html += `<div style="font-size:10px;color:var(--text2);margin-top:4px;text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.model_label || m.model)}</div>`;
+      html += `</div>`;
+    });
+    html += '</div></div>';
+
+  } else {
+    html += '<div style="color:var(--text2);text-align:center;padding:20px">无对比结果</div>';
+  }
+
+  html += '</div>';
+
+  html += `<div style="text-align:center;color:var(--text2);font-size:11px;padding:16px 0">ID: ${escapeHtml(data.test_id || '')} | ${escapeHtml(data.finished_at || '')}</div>`;
+
+  area.innerHTML = html;
+  area.className = 'result-area visible';
+  window._currentResult = data;
+}
+</script>
+</body>
+</html>
